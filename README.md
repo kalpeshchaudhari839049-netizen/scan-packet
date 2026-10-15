@@ -35,4 +35,4 @@ To create a static hosted build, run `npm --prefix frontend run build`; the work
 
 This is a demo screening aid, not a legal determination, certification, or substitute for an authorized inspector. Rule entries are configurable examples; confirm every requirement, amendment, applicability condition, and prescribed method against current authoritative Legal Metrology and FSSAI publications before operational use. OCR can omit or misread small, obscured, or low-quality text; review extracted evidence and route ambiguous cases for human review.
 
-Reports are saved in browser `localStorage`; clearing browser storage removes them. OCR models and the WebAssembly worker are distributed with the static app build. The project retains optional FastAPI backend modules, but the primary scan, result, rules, demo, and history flows do not depend on them.
+Reports are saved in browser `localStorage`; clearing browser storage removes them. OCR models and the WebAssembly worker are distributed with the static app build. All scanning, rule evaluation, reporting, demo, and history features run in the browser; the project has no backend service.
