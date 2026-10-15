@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../language/useLanguage.js'
 import { createClientReport } from '../utils/clientCompliance.js'
 import { recognizeLabel } from '../utils/browserOcr.js'
-import { saveLocalReport } from '../utils/localHistory.js'
+import { saveReport } from '../utils/reportApi.js'
 import { SAMPLE_LABELS } from '../utils/sampleLabels.js'
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
@@ -17,6 +17,7 @@ export default function UploadPage() {
   const [confidence, setConfidence] = useState(0.7)
   const [isFood, setIsFood] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [progress, setProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState('')
   const [error, setError] = useState(null)
@@ -124,7 +125,7 @@ export default function UploadPage() {
     setProgressLabel('')
   }
 
-  const analyzeText = () => {
+  const analyzeText = async () => {
     if (!text.trim()) {
       setError(t('noText'))
       return
@@ -136,10 +137,13 @@ export default function UploadPage() {
         confidence: confidence || 0.7,
         filename: file?.name || 'label-text',
       })
-      saveLocalReport({ ...report, image_url: preview || '' })
+      setSaving(true)
+      await saveReport({ ...report, image_url: preview || '' })
       navigate(`/result/${report.id}`)
     } catch (saveError) {
       setError(saveError.message)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -178,7 +182,7 @@ export default function UploadPage() {
             product: extracted.extracted_fields.product_name.value || item.filename,
             failedCount: extracted.rule_results.filter(rule => rule.status === 'FAIL').length,
           })
-          saveLocalReport(extracted)
+          await saveReport(extracted)
         } catch (itemError) {
           results.push({ id: crypto.randomUUID(), filename: item.filename, product: item.filename, overall_status: 'NEEDS_REVIEW', failedCount: 0, error: itemError.message })
         }
@@ -284,8 +288,8 @@ export default function UploadPage() {
               {SAMPLE_LABELS.map(sample => <button key={sample.id} className="btn btn-secondary btn-sm" type="button" onClick={() => applySample(sample)}>{sample.title}</button>)}
             </div>
           </div>
-          <button className="btn btn-primary btn-lg" type="button" style={{ marginTop: 16, width: '100%' }} onClick={analyzeText} disabled={loading || !text.trim()}>
-            {loading ? 'Reading label…' : `⚖ ${t('analyze')}`}
+          <button className="btn btn-primary btn-lg" type="button" style={{ marginTop: 16, width: '100%' }} onClick={analyzeText} disabled={loading || saving || !text.trim()}>
+                {loading ? 'Reading label…' : saving ? 'Saving report…' : `⚖ ${t('analyze')}`}
           </button>
         </section>
 

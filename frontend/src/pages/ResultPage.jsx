@@ -4,29 +4,20 @@ import ScoreRing from '../components/ScoreRing.jsx'
 import RuleChecklist from '../components/RuleChecklist.jsx'
 import FieldEditor from '../components/FieldEditor.jsx'
 import { createClientReport } from '../utils/clientCompliance.js'
-import { saveLocalReport, getLocalReports } from '../utils/localHistory.js'
+import { saveReport, getReport as fetchReport } from '../utils/reportApi.js'
 import { DISCLAIMER } from '../rules/clientRules.js'
 import { jsPDF } from 'jspdf'
 import { useLanguage } from '../language/useLanguage.js'
-
-function readCachedReport(reportId) {
-  try {
-    const cached = sessionStorage.getItem(`report_${reportId}`)
-    if (cached) return JSON.parse(cached)
-    return getLocalReports().find(item => item.id === reportId) || null
-  } catch {
-    return null
-  }
-}
 
 const STATUS_ICON = { COMPLIANT: '✅', NON_COMPLIANT: '❌', NEEDS_REVIEW: '⚠️' }
 
 export default function ResultPage() {
   const { id } = useParams()
   const { t } = useLanguage()
-  const [initialReport] = useState(() => readCachedReport(id))
+  const [initialReport, setInitialReport] = useState(null)
   const [report, setReport] = useState(initialReport)
-  const [loading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [tab, setTab] = useState('fields')  // 'fields' | 'rules' | 'rawtext'
   const [editedFields, setEditedFields] = useState(initialReport?.extracted_fields || {})
   const [revalMsg, setRevalMsg] = useState(null)
@@ -36,6 +27,26 @@ export default function ResultPage() {
   const [copied, setCopied] = useState(false)
   const textAreaRef = useRef(null)
   const [selectionText, setSelectionText] = useState('')
+
+  useEffect(() => {
+    let active = true
+    fetchReport(id)
+      .then(nextReport => {
+        if (!active) return
+        setInitialReport(nextReport)
+        setReport(nextReport)
+        setEditedFields(nextReport?.extracted_fields || {})
+        setEditedText(nextReport?.raw_text || '')
+        setIsFood(nextReport?.is_food ?? true)
+      })
+      .catch(error => {
+        if (active) setLoadError(error.message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [id])
 
   useEffect(() => {
     if (tab !== 'rawtext' || !selectionText || !textAreaRef.current) return
@@ -74,7 +85,7 @@ export default function ResultPage() {
     })
   }
 
-  const handleRevalidate = () => {
+  const handleRevalidate = async () => {
     setRevalMsg(null)
     try {
       const result = createClientReport({
@@ -86,7 +97,7 @@ export default function ResultPage() {
         filename: report.filename,
       })
       const updated = { ...result, image_url: report.image_url || '' }
-      saveLocalReport(updated)
+      await saveReport(updated)
       setReport(updated)
       setEditedFields(updated.extracted_fields)
       setRevalMsg({ type: 'success', text: 'Checks complete. Verdict updated.' })
@@ -174,7 +185,7 @@ export default function ResultPage() {
   if (loading) return <div role="status" className="text-muted">Loading report…</div>
   if (!report) return (
     <div className="fade-in-up">
-      <div className="empty-state" role="status">This result is no longer available in local browser storage.</div>
+      <div className="empty-state" role="status">{loadError || 'This result is no longer available in local browser storage.'}</div>
       <Link to="/" className="btn btn-secondary btn-sm">← Back to Upload</Link>
     </div>
   )

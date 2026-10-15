@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getLocalReports, clearLocalReports } from '../utils/localHistory.js'
+import { clearReports, getReports } from '../utils/reportApi.js'
 import { useLanguage } from '../language/useLanguage.js'
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -33,47 +33,42 @@ export default function DashboardPage() {
   const PAGE_SIZE = 10
 
   useEffect(() => {
-    const loadHistory = () => {
+    let active = true
+    const loadHistory = async () => {
       try {
-        const allReports = getLocalReports()
-        const counts = { COMPLIANT: 0, NON_COMPLIANT: 0, NEEDS_REVIEW: 0 }
-        const failedRules = new Map()
-        for (const item of allReports) {
-          counts[item.overall_status] = (counts[item.overall_status] || 0) + 1
-          for (const rule of item.rule_results || []) {
-            if (rule.status !== 'FAIL') continue
-            const current = failedRules.get(rule.rule_id) || { rule_id: rule.rule_id, name: rule.name, count: 0 }
-            current.count += 1
-            failedRules.set(rule.rule_id, current)
-          }
-        }
-        const filtered = statusFilter ? allReports.filter(item => item.overall_status === statusFilter) : allReports
-        setData({
-          items: filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
-          total: filtered.length,
-          stats: counts,
-          top_failed_rules: [...failedRules.values()].sort((a, b) => b.count - a.count).slice(0, 5),
+        const reports = await getReports({
+          status: statusFilter,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE,
         })
+        if (!active) return
+        setData(reports)
         setError(null)
       } catch (historyError) {
-        setError(historyError.message)
+        if (active) setError(historyError.message)
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
     loadHistory()
     window.addEventListener('code-alpha-history-updated', loadHistory)
     window.addEventListener('storage', loadHistory)
     return () => {
+      active = false
       window.removeEventListener('code-alpha-history-updated', loadHistory)
       window.removeEventListener('storage', loadHistory)
     }
   }, [page, statusFilter])
 
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
     if (!window.confirm('Clear all locally saved scan history? This cannot be undone.')) return
-    clearLocalReports()
-    setPage(0)
+    try {
+      await clearReports()
+      setPage(0)
+      window.dispatchEvent(new CustomEvent('code-alpha-history-updated'))
+    } catch (clearError) {
+      setError(clearError.message)
+    }
   }
 
   const pieData = data ? Object.entries(data.stats || {}).map(([k, v]) => ({

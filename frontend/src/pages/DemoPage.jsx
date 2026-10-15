@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SAMPLE_LABELS } from '../utils/sampleLabels.js'
 import { createClientReport } from '../utils/clientCompliance.js'
-import { saveLocalReport } from '../utils/localHistory.js'
+import { saveReport } from '../utils/reportApi.js'
 import { useLanguage } from '../language/useLanguage.js'
 
 export default function DemoPage() {
@@ -12,13 +12,13 @@ export default function DemoPage() {
   const [error, setError] = useState(null)
   const navigate = useNavigate()
 
-  const runDemo = demo => {
+  const runDemo = async demo => {
     setRunning(demo.id)
     setError(null)
     try {
       const result = createClientReport({ text: demo.text, isFood: demo.isFood, confidence: 0.99, filename: demo.title })
       result.is_demo = true
-      saveLocalReport(result)
+      await saveReport(result)
       navigate(`/result/${result.id}`)
     } catch (runError) {
       setError(runError.message || 'Demo failed')

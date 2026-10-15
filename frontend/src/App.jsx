@@ -1,6 +1,7 @@
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useState, useEffect } from 'react'
 import { useLanguage } from './language/useLanguage.js'
+import { hasReportApi } from './utils/reportApi.js'
 
 const UploadPage = lazy(() => import('./pages/UploadPage.jsx'))
 const ResultPage = lazy(() => import('./pages/ResultPage.jsx'))
@@ -89,7 +90,7 @@ export default function App() {
               <button key={key} className={`btn btn-ghost btn-sm ${language === key ? 'active' : ''}`} type="button" onClick={() => setLanguage(key)} aria-pressed={language === key} aria-label={`${t('languages')}: ${label}`}>{label}</button>
             ))}
           </div>
-          <span className="api-status online" role="status"><span className="api-status-dot" />On-device mode</span>
+          <span className="api-status online" role="status"><span className="api-status-dot" />{hasReportApi ? 'On-device OCR · API sync' : 'On-device mode'}</span>
           <button
             className="btn btn-secondary btn-sm"
             onClick={toggleTheme}
