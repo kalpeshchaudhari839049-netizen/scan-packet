@@ -1,0 +1,13 @@
+{
+  "name": "code-alpha-compliance-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local full-stack demo for packaged commodity label compliance checks",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev -- --host 127.0.0.1",
+    "dev:api": "python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000",
+    "dev:web": "npm --prefix frontend run dev -- --host 127.0.0.1",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint"
+  }
+}
