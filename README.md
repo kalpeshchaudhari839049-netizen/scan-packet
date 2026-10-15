@@ -36,9 +36,11 @@ Prerequisites: Node.js 20.19+ (or 22.12+) and npm. The frontend works locally wi
 
 ## Deploy to Render
 
-The root `render.yaml` defines a static frontend and a FastAPI web service. Connect the repository to Render and deploy the Blueprint. The API uses a persistent disk at `/var/data` for SQLite reports. The static frontend is built with `VITE_API_BASE_URL` pointing to the API service.
+The `backend/render.yaml` blueprint defines the FastAPI web service. Set its `FRONTEND_ORIGIN` environment variable to your deployed Vercel origin, for example `https://your-project.vercel.app`. The API uses a persistent disk at `/var/data` for SQLite reports. Vercel uses `frontend/vercel.json` for SPA route rewrites.
 
-For manual deployments, set `DATABASE_PATH` to a persistent disk path and `CORS_ORIGINS` to the exact frontend origin. Set `VITE_API_BASE_URL` at frontend build time to the API origin. The API exposes `/api/health`, `POST /api/reports`, `GET /api/reports`, `GET /api/reports/{id}`, and `DELETE /api/reports`.
+In Vercel, import the repository and set **Root Directory** to `frontend`, **Framework Preset** to `Vite`, **Build Command** to `npm run build`, and **Output Directory** to `dist`. Add the environment variable `VITE_API_BASE_URL=https://code-alpha-api.onrender.com` and redeploy. This value is a public API origin, not a secret.
+
+For manual deployments, set `DATABASE_PATH` to a persistent disk path and `FRONTEND_ORIGIN` to the exact frontend origin. Set `VITE_API_BASE_URL` at frontend build time to the API origin. The API exposes `/health` (also `/api/health`), `POST /api/reports`, `GET /api/reports`, `GET /api/reports/{id}`, and `DELETE /api/reports`.
 
 ## What is included
 

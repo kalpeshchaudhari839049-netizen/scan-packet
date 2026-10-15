@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 DEFAULT_DATABASE = Path(__file__).resolve().parents[1] / "data" / "reports.db"
 DATABASE_PATH = Path(os.getenv("DATABASE_PATH", str(DEFAULT_DATABASE)))
 ALLOWED_STATUSES = {"COMPLIANT", "NON_COMPLIANT", "NEEDS_REVIEW"}
+
+
 def connect_database() -> sqlite3.Connection:
     DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DATABASE_PATH, timeout=15)
@@ -49,12 +51,11 @@ app = FastAPI(
 
 cors_origins = [
     origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173",
-    ).split(",")
+    for origin in os.getenv("FRONTEND_ORIGIN", "").split(",")
     if origin.strip()
 ]
+if not cors_origins:
+    cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -63,6 +64,7 @@ app.add_middleware(
 )
 
 
+@app.get("/health")
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
